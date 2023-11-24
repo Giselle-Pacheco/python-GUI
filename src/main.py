@@ -1,6 +1,6 @@
 from tkinter import *
-
-#home/giselle/Documents/UDEM/Ot23/python-GUI/src
+import serial, time
+from arduinoCom import communicationArduino
 
 #Configuring window layer
 window_layer = Tk()
@@ -16,7 +16,7 @@ frame.config(bd=10)
 frame.config(relief="sunken")
 
 #button cursor config
-connect=Button(frame,text="Connect")
+connect=Button(frame,text="Connect",command=communicationArduino)
 connect.place(x=180,y=200)
 # xxx.config(cursor="hand2")
 

@@ -63,8 +63,8 @@ class GUIDesign:
         board.entryFilename = ttk.Entry(board.frame)
         board.entryFilename.grid(row=3, column=1,  sticky="w")
 
-        board.SaveButton = ttk.Button(board.frame, text="Save")#, command=board.toggleConnection)
-        board.SaveButton.grid(row=2, column=2, padx=20,sticky="n")
+        board.SaveButton = ttk.Button(board.frame, text="Save", command=board.saveToCsv)#, command=board.toggleConnection)
+        board.SaveButton.grid(row=3, column=2, padx=20,sticky="n")
 
         board.labelSamplingTime = ttk.Label(board.frame, text="Sampling Time:")
         board.labelSamplingTime.grid(row=4, column=0, pady=5, sticky="w")    
@@ -79,14 +79,17 @@ class GUIDesign:
         board.FirstTestButton = ttk.Button(board.frame, text="Test 1", command=board.calculateFirstTest)#, command=board.toggleConnection)
         board.FirstTestButton.grid(row=5, column=1,pady=10, sticky="n")
 
-        board.SecondTestButton = ttk.Button(board.frame, text="Test 2")#, command=board.toggleConnection)
+        board.SecondTestButton = ttk.Button(board.frame, text="Test 2", command=board.calculateSecondTest)#, command=board.toggleConnection)
         board.SecondTestButton.grid(row=5, column=2, pady=10,sticky="n")
+
+        board.reset = ttk.Button(board.frame, text="Reset", command=board.resetTest)#, command=board.toggleConnection)
+        board.reset.grid(row=6, column=1, pady=10,sticky="n")
 
         board.TestStarted = tk.Canvas(board.frame, width=35, height=35, bg='#ECECEC')
         board.TestStartedStatus = board.TestStarted.create_oval(15, 15, 30, 30, fill='red')
         board.TestStarted.grid(row=5, column=0, pady=5, sticky="n")
 
-        board.testStatuslabel = ttk.Label(board.frame, text="Test OFF")
+        board.testStatuslabel = ttk.Label(board.frame, text="Test")
         board.testStatuslabel.grid(row=6, column=0, sticky="n")  
 
         # Configuración de Matplotlib para gráficos en tiempo real
@@ -125,7 +128,8 @@ class GUIDesign:
 
         # Se convierte el tiempo de muestreo a milisegundos y se envia al arduino
         board.arduino.setSampleTime(int(sampleTime * 1000))
-        # board.TestStarted.itemconfig(board.status_test_circle, fill='green')
+        board.TestStarted.itemconfig(board.TestStartedStatus, fill='green')
+        # board.testStatuslabel.config(text="Test ON", fg="green")
         # 
 
         board.arduino.getData()
@@ -160,8 +164,62 @@ class GUIDesign:
         
         board.arduino.samplesCount = len(board.arduino.data)
 
+    def calculateSecondTest(board):
+        """
+        Se realiza la prueba 2, el usuario ingresa el tiempo de muestreo y el tiempo total
+        """
+        
+        try:
+            time = float(board.entryTime.get())
+            sampleTime = float(board.entrySamplingTime.get())
+        except ValueError:
+            print("Please enter valid values")
+            return
 
-       
+        # Se convierte el tiempo de muestreo a milisegundos y se envia al arduino
+        board.arduino.setSampleTime(int(sampleTime * 1000))
+
+        # Se calculan las muestras
+        numberSamples = int(time/ sampleTime)
+        board.status_test.itemconfig(board.TestStartedStatus, fill='green')
+
+        board.arduino.getData()
+        readThread = threading.Thread(target=board.arduino.readData, args=(sampleTime, numberSamples))
+        plotThread = threading.Thread(target=board.plotData, args=(numberSamples,))
+        readThread.start()
+        plotThread.start()
+        board.plots = True
+        board.plotData(numberSamples)
+
+    def resetTest(board):
+        # Detiene la lectura y reinicia valores
+        board.arduino.stopData()
+        board.plots = False
+        # Limpia los datos almacenados
+        board.arduino.data.clear()
+        # Actualiza el gráfico para mostrar que no hay datos
+        board.line.set_xdata([])
+        board.line.set_ydata([])
+        board.ax.relim()
+        board.ax.autoscale_view()
+        board.canvas.draw()
+        board.TestStarted.itemconfig(board.TestStartedStatus, fill='red')
+
+    def saveToCsv(board):
+        """
+        Se crea un archivo csv y se escriben los datos obtenidos por las pruebas
+        """
+        fileName = board.entryFilename.get()
+
+        with open(fileName, 'w', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow(['Sample', 'Value'])
+            for i in range(board.arduino.samplesCount):
+                value = board.arduino.data[i]
+                csv_writer.writerow([i + 1, value])
+        board.TestStarted.itemconfig(board.TestStartedStatus, fill='red')
+        print(f"Data saved in {fileName}")
+        
 
 windowLayer =tk.Tk() #Configuring window layer
 ide=GUIDesign(windowLayer)

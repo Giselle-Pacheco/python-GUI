@@ -19,7 +19,13 @@ class SerialCommunication():
             print(f"Error connecting to Arduino:")
             board.connected = False
 
-            
+    def setSampleTime(board, sampleTime):
+        """
+        Envía el tiempo de muestreo al Arduino.
+        """
+        if board.connected:
+            board.connection.write(str(sampleTime).encode())
+            board.connection.write(b'\n')
 
 
 

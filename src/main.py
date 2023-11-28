@@ -101,67 +101,64 @@ class GUIDesign:
         board.canvas_widget.pack(expand=False, anchor=tk.CENTER)
 
     def ConnectToArduino(board):
-        # board.arduino = SerialCommunication('COM12', 9600)
+       
 
-        if not board.arduino.connected:
-            board.arduino = SerialCommunication('COM12', 9600)
+        board.arduino = SerialCommunication('COM12', 9600)
 
-            if board.arduino.connected:
-                board.ledConnected.itemconfig(board.ledConnectedStatus, fill='green')
-            else:
-                board.connected=False
-                board.ledConnected.itemconfig(board.ledConnectedStatus, fill='red')
+        if board.arduino.connected:
+            board.ledConnected.itemconfig(board.ledConnectedStatus, fill='green')
+        else:
+            board.connected=False
+            board.ledConnected.itemconfig(board.ledConnectedStatus, fill='red')
 
     def calculateFirstTest(board):
         """
         Se realiza la prueba 1, el usuario ingresa el numero de muestras
         """
-        if not board.arduino.connected:
-            try:
-                numberSamples = int(board.entrySamples.get())
-                sampleTime = float(board.entrySamplingTime.get())
-            except ValueError:
-                print("Please enter valid numbers for number of samples and sample time")
-                return
-
-
-
+        
+        try:
+            numberSamples = int(board.entrySamples.get())
+            sampleTime = float(board.entrySamplingTime.get())
+        except ValueError:
+            print("Please enter valid numbers for number of samples and sample time")
+            return
 
         # Se convierte el tiempo de muestreo a milisegundos y se envia al arduino
         board.arduino.setSampleTime(int(sampleTime * 1000))
-        # # board.status_test.itemconfig(board.status_test_circle, fill='green')
+        # board.TestStarted.itemconfig(board.status_test_circle, fill='green')
+        # 
 
-        # board.arduino.getData()
-        # readThread = threading.Thread(target=board.arduino.readData, args=(sampleTime, numberSamples))
-        # plotThread = threading.Thread(target=board.plotData, args=(numberSamples,))
-        # readThread.start()
-        # plotThread.start()
-        # board.plots = True
-        # board.plotData(numberSamples)
+        board.arduino.getData()
+        readThread = threading.Thread(target=board.arduino.readData, args=(sampleTime, numberSamples))
+        plotThread = threading.Thread(target=board.plotData, args=(numberSamples,))
+        readThread.start()
+        plotThread.start()
+        board.plots = True
+        board.plotData(numberSamples)
 
-    # def plotData(board, numberSamples):
-    #     """
-    #     Metodo para graficar, se actualiza el vector x & y
-    #     """
-    #     global timer 
-    #     if not board.plots:
-    #         return
-    #     if len(board.arduino.data) <= numberSamples:
-    #         sampleTime = float(board.entrySamplingTime.get())
-    #         timer = timer + sampleTime
-    #         board.line.set_xdata(range(len(board.arduino.data)))
-    #         board.line.set_ydata(board.arduino.data)
+    def plotData(board, numberSamples):
+        """
+        Metodo para graficar, se actualiza el vector x & y
+        """
+        global timer 
+        if not board.plots:
+            return
+        if len(board.arduino.data) <= numberSamples:
+            sampleTime = float(board.entrySamplingTime.get())
+            timer = timer + sampleTime
+            board.line.set_xdata(range(len(board.arduino.data)))
+            board.line.set_ydata(board.arduino.data)
 
-    #         board.ax.relim()
-    #         board.ax.autoscale_view()
+            board.ax.relim()
+            board.ax.autoscale_view()
 
-    #         board.canvas.draw()
-    #         board.root.after(int(float(board.entrySamplingTime.get()) * 1000), lambda: board.plotData(numberSamples))
-    #     else:
-    #         board.plots = False
-    #         board.TestStarted.itemconfig(board.TestStartedStatus, fill='red')
+            board.canvas.draw()
+            board.windowLayer.after(int(float(board.entrySamplingTime.get()) * 1000), lambda: board.plotData(numberSamples))
+        else:
+            board.plots = False
+            board.TestStarted.itemconfig(board.TestStartedStatus, fill='red')
         
-    #     board.arduino.samplesCount = len(board.arduino.data)
+        board.arduino.samplesCount = len(board.arduino.data)
 
 
        
